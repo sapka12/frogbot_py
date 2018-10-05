@@ -1,85 +1,179 @@
 import RPi.GPIO as GPIO
+import time
 
-motor_pins_left = [1, 2, 3, 4]
-motor_pins_right = [5, 6, 7, 8]
-button_pin_forward = 10
-button_pin_backward = 11
-button_pin_left = 12
-button_pin_right = 13
-button_pin_ok = 14
-button_pin_cancel = 9
+motor_pins_left = [7, 12, 11, 13]
+motor_pins_right = [15, 16, 18, 22]
+button_pin_forward = 33
+button_pin_backward = 37
+button_pin_left = 36
+button_pin_right = 35
+button_pin_ok = 38
+button_pin_cancel = 40
+
+delay = 0.001
+rounds_move, rounds_rotate = 256, 192
 
 STATE_READ, STATE_GO = "read", "go"
-
 FORWARD, BACKWARD, LEFT, RIGHT = "FORWARD", "BACKWARD", "LEFT", "RIGHT"
 
 
-def go_one_step(step):
-    print(step)
+def init_gpio():
+    GPIO.setmode(GPIO.BOARD)
+
+    pins_out = motor_pins_left + motor_pins_right
+    pins_in = [
+        button_pin_forward,
+        button_pin_backward,
+        button_pin_left,
+        button_pin_right,
+        button_pin_ok,
+        button_pin_cancel,
+    ]
+
+    GPIO.setup(pins_out, GPIO.OUT, initial=GPIO.LOW)
+    for p in pins_in:
+        GPIO.setup(p, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 
-class FrogBot:
-    def __init__(self):
-        self.state = STATE_READ
-        self.directions = []
+def go_one_step(direction):
+    def is_direction(d):
+        return direction == d
 
-    def same_state(self, _state):
-        return self.state == _state
+    rounds = rounds_move if is_direction(FORWARD) or is_direction(BACKWARD) else rounds_rotate
 
-    def add_step(self, step):
-        self.directions.append(step)
+    init_state = [0, 0, 0, 0]
 
-    def go(self):
-        if self.directions:
-            head, *tail = self.directions
-            go_one_step(head)
-            self.directions = tail
-            self.go()
+    stages = [
+        [1, 0, 0, 0],
+        [1, 1, 0, 0],
+        [0, 1, 0, 0],
+        [0, 1, 1, 0],
+        [0, 0, 1, 0],
+        [0, 0, 1, 1],
+        [0, 0, 0, 1],
+        [1, 0, 0, 1],
+    ]
 
-    def cancel(self):
-        self.directions = []
+    stages_l = stages if is_direction(FORWARD) or is_direction(RIGHT) else list(reversed(stages))
+    stages_r = stages if is_direction(FORWARD) or is_direction(LEFT) else list(reversed(stages))
 
+    def set_state(stage, motor):
+        for i in range(len(stage)):
+            if stage[i] == 1:
+                GPIO.output(motor[i], GPIO.HIGH)
+            else:
+                GPIO.output(motor[i], GPIO.LOW)
+        time.sleep(delay)
 
-frog = FrogBot
+    for _ in range(rounds):
+        for i in range(len(stages)):
+            set_state(stages_l[i], motor_pins_left)
+            set_state(stages_r[i], motor_pins_right)
 
-
-def on_push_forward():
-    if frog.same_state(STATE_READ):
-        frog.add_step(FORWARD)
-
-
-def on_push_backward():
-    if frog.same_state(STATE_READ):
-        frog.add_step(BACKWARD)
-
-
-def on_push_left():
-    if frog.same_state(STATE_READ):
-        frog.add_step(LEFT)
-
-
-def on_push_right():
-    if frog.same_state(STATE_READ):
-        frog.add_step(RIGHT)
+    set_state(init_state, motor_pins_left)
+    set_state(init_state, motor_pins_right)
 
 
-def on_push_ok(_s):
-    if frog.same_state(STATE_READ):
-        frog.state = STATE_GO
-        frog.go()
-        frog.state = STATE_READ
+def pressed(pin):
+    return GPIO.input(pin) == 0
 
 
-def on_push_cancel():
-    frog.cancel()
+def on_push_forward(frog):
+    def f(pin):
+        if pressed(pin) and frog["state"] == STATE_READ:
+            print(FORWARD)
+            d = frog["directions"]
+            d.append(FORWARD)
+            frog["directions"] = d
+
+    return f
+
+
+def on_push_backward(frog):
+    def f(pin):
+        if pressed(pin) and frog["state"] == STATE_READ:
+            print(BACKWARD)
+            d = frog["directions"]
+            d.append(BACKWARD)
+            frog["directions"] = d
+
+    return f
+
+
+def on_push_left(frog):
+    def f(pin):
+        if pressed(pin) and frog["state"] == STATE_READ:
+            print(LEFT)
+            d = frog["directions"]
+            d.append(LEFT)
+            frog["directions"] = d
+
+    return f
+
+
+def on_push_right(frog):
+    def f(pin):
+        if pressed(pin) and frog["state"] == STATE_READ:
+            print(RIGHT)
+            d = frog["directions"]
+            d.append(RIGHT)
+            frog["directions"] = d
+
+    return f
+
+
+def run(frog):
+    directions = frog["directions"]
+    if directions:
+        head, *tail = directions
+        go_one_step(head)
+        frog["directions"] = tail
+        run(frog)
+
+
+def on_push_ok(frog):
+    def f(pin):
+        print("b")
+        if pressed(pin) and frog["state"] == STATE_READ:
+            print("OK")
+            frog["state"] = STATE_GO
+            run(frog)
+            frog["state"] = STATE_READ
+
+    return f
+
+
+# TODO add effect
+def on_push_cancel(frog):
+    def f(pin):
+        print("a")
+        if pressed(pin):
+            print("CANCEL")
+            frog["directions"] = []
+
+    return f
+
+
+def listen(pin, callback):
+    GPIO.add_event_detect(pin, GPIO.RISING, callback=callback, bouncetime=300)
 
 
 if __name__ == '__main__':
-    GPIO.add_event_detect(button_pin_forward, GPIO.RISING, callback=on_push_forward)
-    GPIO.add_event_detect(button_pin_backward, GPIO.RISING, callback=on_push_backward)
-    GPIO.add_event_detect(button_pin_left, GPIO.RISING, callback=on_push_left)
-    GPIO.add_event_detect(button_pin_right, GPIO.RISING, callback=on_push_right)
-    GPIO.add_event_detect(button_pin_ok, GPIO.RISING, callback=on_push_ok)
-    GPIO.add_event_detect(button_pin_cancel, GPIO.RISING, callback=on_push_cancel)
+    init_gpio()
 
-    input("waiting for action")
+    frog = {
+        "state": STATE_READ,
+        "directions": [],
+    }
+
+    listen(button_pin_forward, on_push_forward(frog))
+    listen(button_pin_backward, on_push_backward(frog))
+    listen(button_pin_left, on_push_left(frog))
+    listen(button_pin_right, on_push_right(frog))
+    listen(button_pin_ok, on_push_ok(frog))
+    listen(button_pin_cancel, on_push_cancel(frog))
+
+    go_one_step(FORWARD)
+
+    while True:
+        time.sleep(1)
