@@ -35,6 +35,14 @@ def init_gpio():
         GPIO.setup(p, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 
+def light():
+    for pin in motor_pins_right + motor_pins_left:
+        GPIO.output(pin, GPIO.HIGH)
+    time.sleep(0.5)
+    for pin in motor_pins_right + motor_pins_left:
+        GPIO.output(pin, GPIO.LOW)
+
+
 def go_one_step(direction):
     def is_direction(d):
         return direction == d
@@ -85,6 +93,7 @@ def on_push_forward(frog):
             d = frog["directions"]
             d.append(FORWARD)
             frog["directions"] = d
+            light()
 
     return f
 
@@ -96,6 +105,7 @@ def on_push_backward(frog):
             d = frog["directions"]
             d.append(BACKWARD)
             frog["directions"] = d
+            light()
 
     return f
 
@@ -107,6 +117,7 @@ def on_push_left(frog):
             d = frog["directions"]
             d.append(LEFT)
             frog["directions"] = d
+            light()
 
     return f
 
@@ -118,6 +129,7 @@ def on_push_right(frog):
             d = frog["directions"]
             d.append(RIGHT)
             frog["directions"] = d
+            light()
 
     return f
 
@@ -150,6 +162,7 @@ def on_push_cancel(frog):
         if pressed(pin):
             print("CANCEL")
             frog["directions"] = []
+            light()
 
     return f
 
