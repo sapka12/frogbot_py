@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 import time
+from envar_manager import *
 
 motor_pins_left = [7, 12, 11, 13]
 motor_pins_right = [15, 16, 18, 22]
@@ -11,7 +12,7 @@ button_pin_ok = 38
 button_pin_cancel = 40
 
 delay = 0.001
-rounds_move, rounds_rotate = 256, 192
+rounds_move, rounds_rotate = 573, 335
 
 STATE_READ, STATE_GO = "read", "go"
 FORWARD, BACKWARD, LEFT, RIGHT = "FORWARD", "BACKWARD", "LEFT", "RIGHT"
@@ -65,7 +66,7 @@ def go_one_step(direction):
     stages_l = stages if is_direction(FORWARD) or is_direction(RIGHT) else list(reversed(stages))
     stages_r = stages if is_direction(FORWARD) or is_direction(LEFT) else list(reversed(stages))
 
-    def set_state(stage, motor):
+    def set_motor_state(stage, motor):
         for i in range(len(stage)):
             if stage[i] == 1:
                 GPIO.output(motor[i], GPIO.HIGH)
@@ -75,96 +76,77 @@ def go_one_step(direction):
 
     for _ in range(rounds):
         for i in range(len(stages)):
-            set_state(stages_l[i], motor_pins_left)
-            set_state(stages_r[i], motor_pins_right)
+            set_motor_state(stages_l[i], motor_pins_left)
+            set_motor_state(stages_r[i], motor_pins_right)
 
-    set_state(init_state, motor_pins_left)
-    set_state(init_state, motor_pins_right)
+    set_motor_state(init_state, motor_pins_left)
+    set_motor_state(init_state, motor_pins_right)
 
 
 def pressed(pin):
     return GPIO.input(pin) == 0
 
 
-def on_push_forward(frog):
-    def f(pin):
-        if pressed(pin) and frog["state"] == STATE_READ:
-            print(FORWARD)
-            d = frog["directions"]
-            d.append(FORWARD)
-            frog["directions"] = d
-            light()
-
-    return f
+def on_push_forward(pin):
+    if pressed(pin) and is_state(STATE_READ):
+        print(FORWARD)
+        add_direction(FORWARD)
+        light()
 
 
-def on_push_backward(frog):
-    def f(pin):
-        if pressed(pin) and frog["state"] == STATE_READ:
-            print(BACKWARD)
-            d = frog["directions"]
-            d.append(BACKWARD)
-            frog["directions"] = d
-            light()
-
-    return f
+def on_push_backward(pin):
+    if pressed(pin) and is_state(STATE_READ):
+        print(BACKWARD)
+        add_direction(BACKWARD)
+        light()
 
 
-def on_push_left(frog):
-    def f(pin):
-        if pressed(pin) and frog["state"] == STATE_READ:
-            print(LEFT)
-            d = frog["directions"]
-            d.append(LEFT)
-            frog["directions"] = d
-            light()
-
-    return f
+def on_push_left(pin):
+    if pressed(pin) and is_state(STATE_READ):
+        print(LEFT)
+        add_direction(LEFT)
+        light()
 
 
-def on_push_right(frog):
-    def f(pin):
-        if pressed(pin) and frog["state"] == STATE_READ:
-            print(RIGHT)
-            d = frog["directions"]
-            d.append(RIGHT)
-            frog["directions"] = d
-            light()
-
-    return f
+def on_push_right(pin):
+    if pressed(pin) and is_state(STATE_READ):
+        print(RIGHT)
+        add_direction(RIGHT)
+        light()
 
 
-def run(frog):
-    directions = frog["directions"]
+def run():
+    time.sleep(1)
+    directions = get_directions()
+    print("directions:", directions)
     if directions:
         head, *tail = directions
         go_one_step(head)
-        frog["directions"] = tail
-        run(frog)
+        set_directions(tail)
+        run()
 
 
-def on_push_ok(frog):
-    def f(pin):
-        print("b")
-        if pressed(pin) and frog["state"] == STATE_READ:
-            print("OK")
-            frog["state"] = STATE_GO
-            run(frog)
-            frog["state"] = STATE_READ
+def on_push_ok(pin):
+    if pressed(pin) and is_state(STATE_READ):
+        print("OK")
 
-    return f
+        light()
+        time.sleep(0.2)
+        light()
+        time.sleep(0.2)
+        light()
+
+        set_state(STATE_GO)
+        run()
+        set_state(STATE_READ)
 
 
 # TODO add effect
-def on_push_cancel(frog):
-    def f(pin):
-        print("a")
-        if pressed(pin):
-            print("CANCEL")
-            frog["directions"] = []
-            light()
-
-    return f
+def on_push_cancel(pin):
+    if pressed(pin):
+        print("CANCEL")
+        set_directions([])
+        light()
 
 
 def listen(pin, callback):
@@ -174,17 +156,15 @@ def listen(pin, callback):
 if __name__ == '__main__':
     init_gpio()
 
-    frog = {
-        "state": STATE_READ,
-        "directions": [],
-    }
+    set_state(STATE_READ)
+    set_directions([])
 
-    listen(button_pin_forward, on_push_forward(frog))
-    listen(button_pin_backward, on_push_backward(frog))
-    listen(button_pin_left, on_push_left(frog))
-    listen(button_pin_right, on_push_right(frog))
-    listen(button_pin_ok, on_push_ok(frog))
-    listen(button_pin_cancel, on_push_cancel(frog))
+    listen(button_pin_forward, on_push_forward)
+    listen(button_pin_backward, on_push_backward)
+    listen(button_pin_left, on_push_left)
+    listen(button_pin_right, on_push_right)
+    listen(button_pin_ok, on_push_ok)
+    listen(button_pin_cancel, on_push_cancel)
 
     go_one_step(FORWARD)
 
