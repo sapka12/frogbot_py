@@ -116,7 +116,6 @@ def on_push_right(pin):
 
 
 def run():
-    time.sleep(1)
     directions = get_directions()
     print("directions:", directions)
     if directions:
