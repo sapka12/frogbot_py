@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import time
 from envar_manager import *
+import multiprocessing
 
 motor_pins_left = [7, 12, 11, 13]
 motor_pins_right = [15, 16, 18, 22]
@@ -115,37 +116,19 @@ def on_push_right(pin):
         light()
 
 
-def run():
-    directions = get_directions()
-    print("directions:", directions)
-    if directions:
-        head, *tail = directions
-        go_one_step(head)
-        set_directions(tail)
-        run()
-
-
-def on_push_ok(pin):
-    if pressed(pin) and is_state(STATE_READ):
-        print("OK")
-
-        light()
-        time.sleep(0.2)
-        light()
-        time.sleep(0.2)
-        light()
-
-        set_state(STATE_GO)
-        run()
-        set_state(STATE_READ)
-
-
-# TODO add effect
-def on_push_cancel(pin):
-    if pressed(pin):
-        print("CANCEL")
-        set_directions([])
-        light()
+def run_frog(e):
+    while True:
+        e.wait()
+        while e.is_set():
+            directions = get_directions()
+            print("directions:", directions)
+            if directions:
+                head, *tail = directions
+                go_one_step(head)
+                set_directions(tail)
+            else:
+                set_state(STATE_READ)
+            time.sleep(1)
 
 
 def listen(pin, callback):
@@ -158,6 +141,33 @@ if __name__ == '__main__':
     set_state(STATE_READ)
     set_directions([])
 
+    first_button_pushed = multiprocessing.Event()
+
+
+    def on_push_ok(pin):
+        if pressed(pin) and is_state(STATE_READ):
+            print("OK")
+
+            light()
+            time.sleep(0.2)
+            light()
+            time.sleep(0.2)
+            light()
+
+            set_state(STATE_GO)
+            first_button_pushed.set()
+
+
+    # TODO add effect
+    def on_push_cancel(pin):
+        if pressed(pin):
+            print("CANCEL")
+            first_button_pushed.clear()
+            set_directions([])
+            set_state(STATE_READ)
+            light()
+
+
     listen(button_pin_forward, on_push_forward)
     listen(button_pin_backward, on_push_backward)
     listen(button_pin_left, on_push_left)
@@ -165,7 +175,11 @@ if __name__ == '__main__':
     listen(button_pin_ok, on_push_ok)
     listen(button_pin_cancel, on_push_cancel)
 
-    go_one_step(FORWARD)
+    process = multiprocessing.Process(name='first_process', target=run_frog, args=(first_button_pushed,))
+    process.daemon = True
+    process.start()
+
+    go_one_step(RIGHT)
 
     while True:
         time.sleep(1)

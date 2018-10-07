@@ -19,9 +19,8 @@ def get_directions():
 
 def set_directions(_directions):
     os.environ[DIRECTIONS] = ",".join(_directions)
+    print("directions:", get_directions())
 
 
 def add_direction(_direction):
-    d = get_directions()
-    d.append(_direction)
-    set_directions(d)
+    set_directions(get_directions() + [_direction])
