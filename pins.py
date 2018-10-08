@@ -1,12 +1,8 @@
+from settings import *
 import RPi.GPIO as GPIO
 import time
 
-rounds_move, rounds_rotate = 573, 335
 FORWARD, BACKWARD, LEFT, RIGHT = "FORWARD", "BACKWARD", "LEFT", "RIGHT"
-delay = 0.0005
-
-motor_pins_left = [7, 12, 11, 13]
-motor_pins_right = [15, 16, 18, 22]
 
 
 def init_gpio():
@@ -70,4 +66,4 @@ def pressed(pin):
 
 def gpio_button(channel, on_push):
     GPIO.setup(channel, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(channel, GPIO.RISING, callback=on_push, bouncetime=300)
+    GPIO.add_event_detect(channel, GPIO.RISING, callback=on_push, bouncetime=bouncetime)

@@ -1,3 +1,4 @@
+from settings import *
 import RPi.GPIO as GPIO
 
 from actors import *
@@ -5,13 +6,6 @@ from pins import *
 
 motor = MotorActor.start()
 state = StateActor.start(motor_actor_ref=motor)
-
-button_pin_forward = 33
-button_pin_backward = 37
-button_pin_left = 36
-button_pin_right = 35
-button_pin_ok = 38
-button_pin_cancel = 40
 
 
 def on_push(msg):
