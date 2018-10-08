@@ -17,6 +17,3 @@ class GpioButton(object):
     def __on_push(self):
         if pressed(self.channel):
             self.on_push()
-
-
-
