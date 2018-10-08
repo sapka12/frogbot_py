@@ -1,5 +1,7 @@
 import pykka
 import time
+from pins import go_one_step as go
+from pins import light as sign
 
 STATE_READ = "read"
 STATE_GO = "go"
@@ -19,7 +21,7 @@ class MotorActor(pykka.ThreadingActor):
         direction = msg.get(DIRECTION)
         sender = msg.get(SENDER)
         print(">>> MOTOR MOVES:", direction)
-        time.sleep(2)
+        go(direction)
         sender.tell({ACTION: NEXT_DIRECTION})
 
 
@@ -38,6 +40,7 @@ class StateActor(pykka.ThreadingActor):
 
     def on_receive(self, msg):
         if self.state == STATE_READ:
+            sign()
             if msg.get(ACTION) == ADD_DIRECTION:
                 self.directions.append(msg.get(DIRECTION))
             elif msg.get(ACTION) == OK:
