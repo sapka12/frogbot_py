@@ -9,5 +9,5 @@ motor_pins_left = [7, 12, 11, 13]
 motor_pins_right = [15, 16, 18, 22]
 
 delay = 0.0005
-rounds_move, rounds_rotate = 573, 335
+rounds_move, rounds_rotate = 573, 340
 bouncetime=300

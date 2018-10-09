@@ -1,11 +1,8 @@
-from settings import *
-import RPi.GPIO as GPIO
-
 from actors import *
 from pins import *
 
-motor = MotorActor.start()
-state = StateActor.start(motor_actor_ref=motor)
+motor = MotorActor.start(action_with_direction=go_one_step)
+state = StateActor.start(motor_actor_ref=motor, sign=light)
 
 
 def on_push(msg):
