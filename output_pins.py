@@ -1,6 +1,7 @@
-from settings import *
 import RPi.GPIO as GPIO
 import time
+
+from settings import *
 
 FORWARD, BACKWARD, LEFT, RIGHT = "FORWARD", "BACKWARD", "LEFT", "RIGHT"
 
@@ -58,12 +59,3 @@ def go_one_step(direction):
 
     set_motor_state(init_state, motor_pins_left)
     set_motor_state(init_state, motor_pins_right)
-
-
-def pressed(pin):
-    return GPIO.input(pin) == 0
-
-
-def gpio_button(channel, on_push):
-    GPIO.setup(channel, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(channel, GPIO.RISING, callback=on_push, bouncetime=bouncetime)

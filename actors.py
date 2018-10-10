@@ -40,7 +40,15 @@ class StateActor(pykka.ThreadingActor):
         self.directions = tail
 
     def on_receive(self, msg):
-        if self.state == STATE_READ:
+        print()
+        print("before", msg, self.state, self.directions)
+
+        if msg.get(ACTION) == CANCEL:
+            self.sign()
+            self.directions = []
+            self.state = STATE_READ
+
+        elif self.state == STATE_READ:
             self.sign()
             if msg.get(ACTION) == ADD_DIRECTION:
                 self.directions.append(msg.get(DIRECTION))
@@ -48,12 +56,11 @@ class StateActor(pykka.ThreadingActor):
                 self.state = STATE_GO
                 self._one_step()
 
-        if self.state == STATE_GO:
+        elif self.state == STATE_GO:
             if msg.get(ACTION) == NEXT_DIRECTION:
                 if self.directions:
                     self._one_step()
                 else:
                     self.state = STATE_READ
-            elif msg.get(ACTION) == CANCEL:
-                self.directions = []
-                self.state = STATE_READ
+
+        print("after", msg, self.state, self.directions)
