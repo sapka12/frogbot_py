@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 
+from MqttProxy import MqttProxy, commands
 from actors import MotorActor, StateActor
 from output_pins import go_one_step, light, bouncetime
 
@@ -24,5 +25,11 @@ def frog(buttons):
 
     for button_pin, msg in buttons:
         gpio_button(button_pin, on_push(msg))
+
+    def hqtt_on_msg(msg):
+        if msg in commands.keys():
+            state.tell(commands[msg])
+
+    MqttProxy(hqtt_on_msg)
 
     light()
