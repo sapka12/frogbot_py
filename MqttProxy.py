@@ -17,12 +17,23 @@ commands = {
 class MqttProxy:
 
     def __init__(self, on_message_func):
-        mqttc = mqtt.Client()
-        mqttc.on_message = lambda client, obj, msg: on_message_func(int(msg.payload))
+        self.init_connection(on_message_func)
 
-        mqttc.username_pw_set(MQTT_USER, MQTT_PASS)
-        mqttc.connect(MQTT_HOST, MQTT_PORT)
-        mqttc.subscribe(MQTT_TOPIC, 0)
+    def init_connection(self, f):
+        try:
+            mqttc = mqtt.Client()
+            mqttc.on_message = lambda client, obj, msg: f(int(msg.payload))
 
-        while True:
-            mqttc.loop()
+            mqttc.username_pw_set(MQTT_USER, MQTT_PASS)
+            mqttc.connect(MQTT_HOST, MQTT_PORT)
+            mqttc.subscribe(MQTT_TOPIC, 0)
+
+            while True:
+                mqttc.loop()
+
+        except:
+            print("init mqtt again...")
+            import time
+            time.sleep(10)
+            self.init_connection(f)
+
