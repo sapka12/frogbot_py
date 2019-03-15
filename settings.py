@@ -10,4 +10,3 @@ motor_pins_right = [15, 16, 18, 22]
 
 delay = 0.0005
 rounds_move, rounds_rotate = 562, 339
-bouncetime=300
