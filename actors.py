@@ -17,6 +17,7 @@ class MotorActor(pykka.ThreadingActor):
     def __init__(self, action_with_direction):
         super(MotorActor, self).__init__()
         self.action_with_direction = action_with_direction
+        print("MotorActor started")
 
     def on_receive(self, msg):
         direction = msg.get(DIRECTION)
@@ -33,6 +34,7 @@ class StateActor(pykka.ThreadingActor):
         self.state = state
         self.directions = directions
         self.sign = sign
+        print("StateActor started")
 
     def _one_step(self):
         head, *tail = self.directions
